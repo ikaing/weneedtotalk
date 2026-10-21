@@ -10,12 +10,18 @@
 <meta name="theme-color" content="#F2F2EF">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
     --bg:#F2F2EF;
     --ink:#111111;
     --accent:#DCF25A;
+    --card:#FFFFFF;
+    --muted:#5E5E59;
+    --ink-soft:#3A3A36;
+    --line:#E2E2DC;
+    --line2:#DEDED8;
+    --tick-off:#CFCFC8;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);height:100%;
@@ -23,45 +29,100 @@
   button{font-family:inherit;}
   .mono{font-family:'IBM Plex Mono',monospace;}
   #app{min-height:100vh;display:flex;flex-direction:column;}
+
   .topbar{display:flex;align-items:center;justify-content:space-between;
-    padding:calc(16px + env(safe-area-inset-top)) 20px 12px;}
-  .topbar .title{font-size:13px;letter-spacing:0.08em;text-transform:uppercase;}
-  .icon-btn{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;
-    padding:8px;line-height:1;}
+    padding:calc(16px + env(safe-area-inset-top)) 20px 8px;position:relative;z-index:3;}
+  .topbar .label{font-size:12px;letter-spacing:1px;color:var(--muted);}
+  .icon-btn{width:44px;height:44px;flex-shrink:0;padding:0;border:0;border-radius:50%;
+    background:var(--card);color:var(--ink);cursor:pointer;display:flex;align-items:center;
+    justify-content:center;}
   .icon-btn:disabled{opacity:.25;}
-  .spacer{width:38px;}
+  .spacer{width:44px;}
+
+  /* ---------- record screen ---------- */
   .record-screen{flex:1;display:flex;flex-direction:column;align-items:center;
-    justify-content:center;padding:24px;gap:22px;}
-  .record-btn{width:170px;height:170px;border-radius:50%;border:none;background:var(--accent);
-    color:var(--ink);font-size:17px;font-weight:600;cursor:pointer;display:flex;
-    align-items:center;justify-content:center;text-align:center;transition:background .2s,color .2s;}
-  .record-btn.active{background:var(--ink);color:var(--accent);animation:pulse 1.6s ease-in-out infinite;}
-  @keyframes pulse{
-    0%,100%{box-shadow:0 0 0 0 rgba(17,17,17,0.0);}
-    50%{box-shadow:0 0 0 14px rgba(17,17,17,0.08);}
+    padding:12px 24px calc(28px + env(safe-area-inset-bottom));position:relative;}
+  .big-title{margin:12px 0 0;font-size:38px;line-height:1;letter-spacing:-1.3px;
+    font-weight:700;text-align:center;}
+  .rec-status{display:flex;align-items:center;justify-content:space-between;width:100%;
+    font-size:12px;letter-spacing:1px;color:var(--muted);}
+  .rec-dot-row{display:flex;align-items:center;gap:8px;}
+  .rec-dot{width:8px;height:8px;border-radius:50%;border:1px solid var(--ink);}
+
+  .dial-wrap{margin:28px auto 0;width:280px;height:280px;border-radius:50%;background:#FBFBF9;
+    box-shadow:0 1px 0 #FFFFFF inset,0 12px 32px rgba(17,17,17,.08);position:relative;flex-shrink:0;}
+  .dial-wrap.rec{box-shadow:0 1px 0 #FFFFFF inset,0 12px 32px rgba(17,17,17,.08),
+    0 0 0 0 rgba(17,17,17,0);animation:dialPulse 1.8s ease-in-out infinite;}
+  @keyframes dialPulse{
+    0%,100%{box-shadow:0 1px 0 #FFFFFF inset,0 12px 32px rgba(17,17,17,.08),0 0 0 0 rgba(17,17,17,0);}
+    50%{box-shadow:0 1px 0 #FFFFFF inset,0 12px 32px rgba(17,17,17,.08),0 0 0 14px rgba(17,17,17,.06);}
   }
-  .timer{font-size:15px;opacity:.55;min-height:18px;}
-  .transcript-box{width:100%;max-width:480px;min-height:110px;max-height:38vh;overflow-y:auto;
-    background:#fff;border:1px solid rgba(17,17,17,0.12);border-radius:12px;padding:16px;
-    font-size:16px;line-height:1.65;white-space:pre-wrap;}
-  .transcript-box.empty::before{content:"transcript จะขึ้นที่นี่…";opacity:.4;}
-  .lib-list{flex:1;overflow-y:auto;padding:0 20px calc(40px + env(safe-area-inset-bottom));}
-  .lib-item{display:block;width:100%;text-align:left;background:#fff;
-    border:1px solid rgba(17,17,17,0.1);border-radius:12px;padding:14px 16px;
-    margin-bottom:10px;cursor:pointer;}
-  .lib-item .date{font-size:12px;opacity:.5;margin-bottom:4px;}
-  .lib-item .preview{font-size:14px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;
-    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
-  .empty-state{opacity:.5;padding:60px 20px;text-align:center;font-size:14px;}
-  .detail-screen{flex:1;display:flex;flex-direction:column;
-    padding:0 20px calc(40px + env(safe-area-inset-bottom));}
-  .detail-date{font-size:12px;opacity:.5;margin-bottom:16px;}
-  .detail-text{font-size:16px;line-height:1.8;white-space:pre-wrap;flex:1;}
-  .action-row{display:flex;gap:10px;margin-top:20px;}
-  .btn{font-size:14px;font-weight:600;padding:12px 18px;border-radius:10px;border:none;
-    cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;}
-  .btn-accent{background:var(--accent);color:var(--ink);}
-  .btn-ghost{background:transparent;color:var(--ink);opacity:.5;}
+  .tick{position:absolute;border-radius:1px;transition:background .15s;}
+  .dial-center{position:absolute;inset:48px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:8px;}
+  .dial-core{width:72px;height:72px;border-radius:50%;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;}
+  .dial-listening{font-size:13px;color:var(--muted);}
+  .dial-timer{font-family:'IBM Plex Mono',monospace;font-size:42px;font-weight:500;
+    letter-spacing:-1px;}
+  .wave{display:flex;align-items:center;gap:3px;height:30px;}
+  .wave span{width:3px;border-radius:2px;background:var(--ink);transition:height .3s;}
+
+  .transcript-card{margin-top:24px;width:100%;max-width:420px;background:var(--card);
+    border-radius:20px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;}
+  .transcript-label{font-size:11px;letter-spacing:1px;color:var(--muted);}
+  .transcript-text{font-size:15px;line-height:1.65;color:var(--ink-soft);white-space:pre-wrap;
+    max-height:22vh;overflow-y:auto;}
+  .transcript-text.empty::before{content:"พูดอะไรก็ได้ คำจะขึ้นที่นี่…";opacity:.5;}
+
+  .idle-hint{margin-top:16px;font-size:12px;letter-spacing:1px;color:var(--muted);}
+
+  .tap-overlay{position:absolute;inset:0;background:transparent;border:0;padding:0;
+    cursor:pointer;z-index:1;}
+
+  .pill{position:absolute;left:24px;right:24px;bottom:calc(28px + env(safe-area-inset-bottom));
+    height:76px;border-radius:38px;background:var(--ink);color:#FFFFFF;text-decoration:none;
+    display:flex;align-items:center;justify-content:space-between;padding:0 10px 0 28px;
+    box-shadow:0 12px 32px rgba(17,17,17,.18);border:0;cursor:pointer;z-index:2;}
+  .pill span.label{font-size:16px;font-weight:500;}
+  .pill .pill-icon{width:56px;height:56px;border-radius:50%;background:var(--accent);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .pill-stop-sq{width:18px;height:18px;border-radius:3px;background:var(--ink);}
+
+  /* ---------- library ---------- */
+  .lib-head{padding:calc(16px + env(safe-area-inset-top)) 24px 4px;display:flex;
+    flex-direction:column;gap:14px;}
+  .lib-stats{font-size:12px;letter-spacing:1px;color:var(--muted);}
+  .lib-h1{margin:0;font-size:36px;line-height:1.1;letter-spacing:-1px;font-weight:700;}
+  .lib-list{flex:1;overflow-y:auto;padding:4px 24px calc(120px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:6px;}
+  .lib-group-label{margin:16px 0 2px;font-family:'IBM Plex Mono',monospace;font-size:12px;
+    font-weight:500;letter-spacing:1px;color:var(--muted);}
+  .lib-item{display:flex;flex-direction:column;gap:8px;padding:16px 18px;border-radius:20px;
+    background:var(--card);color:var(--ink);text-decoration:none;cursor:pointer;border:0;
+    text-align:left;width:100%;}
+  .lib-item .meta{display:flex;justify-content:space-between;align-items:center;
+    font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);}
+  .lib-item .preview{font-size:16px;line-height:1.45;font-weight:700;overflow:hidden;
+    text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .empty-state{margin-top:48px;display:flex;flex-direction:column;align-items:center;gap:10px;
+    text-align:center;padding:0 24px;}
+  .empty-state .t1{font-size:17px;font-weight:700;}
+  .empty-state .t2{font-size:14px;color:var(--muted);line-height:1.6;}
+
+  /* ---------- detail ---------- */
+  .detail-head{padding:calc(16px + env(safe-area-inset-top)) 24px 0;display:flex;
+    flex-direction:column;gap:16px;}
+  .detail-top-row{display:flex;align-items:center;justify-content:space-between;}
+  .detail-date{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);
+    letter-spacing:1px;}
+  .detail-body{flex:1;overflow-y:auto;padding:18px 24px 24px;}
+  .detail-text{font-size:16px;line-height:1.8;white-space:pre-wrap;color:var(--ink);}
+  .detail-footer{padding:12px 24px calc(28px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line);}
+  .copy-btn{width:100%;height:56px;border-radius:28px;border:0;background:var(--ink);
+    color:#FFFFFF;font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;gap:10px;}
 </style>
 </head>
 <body>
@@ -69,6 +130,16 @@
 <script>
 const STORAGE_KEY = 'wntt_recordings';
 const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+const thWeekdays = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
+
+const ICON = {
+  list: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>',
+  mic: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0"></path><path d="M12 18v3"></path></svg>',
+  back: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
+  trash: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12"></path><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"></path></svg>',
+  copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a1 1 0 011-1h10"></path></svg>',
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>'
+};
 
 let recognition = null;
 let isRecording = false;
@@ -86,11 +157,33 @@ function saveRecordings(list){
 function escapeHtml(s){
   return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 }
-function formatDate(iso){
+function formatClock(sec){
+  const m = Math.floor(sec/60), s = sec%60;
+  return String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+}
+function formatDateFull(iso){
   const d = new Date(iso);
   const hh = String(d.getHours()).padStart(2,'0');
   const mm = String(d.getMinutes()).padStart(2,'0');
   return `${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear()} · ${hh}:${mm}`;
+}
+function formatTimeShort(iso){
+  const d = new Date(iso);
+  return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+}
+function dayLabel(iso){
+  const d = new Date(iso);
+  const now = new Date();
+  const start = x => new Date(x.getFullYear(), x.getMonth(), x.getDate());
+  const diff = Math.round((start(now) - start(d)) / 86400000);
+  if(diff === 0) return 'วันนี้';
+  if(diff === 1) return 'เมื่อวาน';
+  return `${thWeekdays[d.getDay()]} ${d.getDate()} ${thMonths[d.getMonth()]}`;
+}
+function formatTotalDuration(totalSec){
+  const h = Math.floor(totalSec/3600), m = Math.floor((totalSec%3600)/60);
+  if(h > 0) return `${h}:${String(m).padStart(2,'0')} ชม.`;
+  return `${m} นาที`;
 }
 function fallbackCopy(text){
   const ta = document.createElement('textarea');
@@ -117,13 +210,41 @@ document.addEventListener('visibilitychange', async () => {
   }
 });
 
+/* ---- decorative dial + waveform, driven by elapsed seconds (not real mic level) ---- */
+function buildTicks(sec){
+  const lit = sec % 60;
+  const R = 140, left = R - 1, top = 10, originY = R - 10;
+  let html = '';
+  for(let i = 0; i < 60; i++){
+    const major = i % 5 === 0;
+    const h = major ? 14 : 8;
+    const on = i <= lit;
+    const color = on ? '#111111' : 'var(--tick-off)';
+    html += `<span class="tick" style="left:${left}px;top:${top}px;width:2px;height:${h}px;
+      transform-origin:1px ${originY}px;transform:rotate(${i*6}deg);background:${color}"></span>`;
+  }
+  return html;
+}
+function buildWave(sec){
+  let html = '';
+  for(let i = 0; i < 21; i++){
+    const h = 6 + Math.round(Math.abs(Math.sin(sec*1.7 + i*0.9) * Math.cos(i*0.4)) * 24);
+    const color = i === 10 ? 'var(--accent)' : 'var(--ink)';
+    html += `<span style="height:${h}px;background:${color}"></span>`;
+  }
+  return html;
+}
+
 function updateTimer(){
-  const el = document.getElementById('timer');
-  if(!el) return;
+  const dial = document.getElementById('dialWrap');
+  if(!dial) return;
   const sec = Math.floor((Date.now() - recordStartTime)/1000);
-  const mm = String(Math.floor(sec/60)).padStart(2,'0');
-  const ss = String(sec%60).padStart(2,'0');
-  el.textContent = `${mm}:${ss}`;
+  const centerHtml = dial.querySelector('.dial-center').outerHTML;
+  dial.innerHTML = buildTicks(sec) + centerHtml;
+  const timerEl = document.getElementById('dialTimer');
+  const waveEl = document.getElementById('waveRow');
+  if(timerEl) timerEl.textContent = formatClock(sec);
+  if(waveEl) waveEl.innerHTML = buildWave(sec);
 }
 
 function updateTranscriptDisplay(text){
@@ -187,6 +308,7 @@ function startRecording(){
 function stopRecording(){
   isRecording = false;
   if(recognition){ recognition.onend = null; try{ recognition.stop(); }catch(e){} }
+  const durationSec = recordStartTime ? Math.round((Date.now() - recordStartTime)/1000) : 0;
   if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
   releaseWakeLock();
 
@@ -194,7 +316,7 @@ function stopRecording(){
   finalizedText = '';
   if(text){
     const list = getRecordings();
-    const rec = { id: Date.now().toString(), createdAt: new Date().toISOString(), transcript: text };
+    const rec = { id: Date.now().toString(), createdAt: new Date().toISOString(), transcript: text, durationSec };
     list.unshift(rec);
     saveRecordings(list);
     location.hash = '#/detail/' + rec.id;
@@ -204,49 +326,103 @@ function stopRecording(){
 }
 
 function renderRecord(app){
+  const rec = isRecording;
   app.innerHTML = `
-    <div class="topbar">
-      <div class="title mono">WE NEED TO TALK!</div>
-      <button class="icon-btn" id="libBtn" ${isRecording ? 'disabled' : ''}>☰</button>
-    </div>
     <div class="record-screen">
-      <button class="record-btn ${isRecording ? 'active' : ''}" id="recBtn">
-        ${isRecording ? 'แตะเพื่อจบ' : 'แตะเพื่อเริ่ม'}
+      <div class="topbar" style="padding-top:0;margin-bottom:4px">
+        ${rec ? `
+          <div class="rec-status">
+            <span class="rec-dot-row"><span class="rec-dot" id="recDot" style="background:var(--accent)"></span>REC</span>
+            <span>ไม่อัปโหลดไฟล์เสียง</span>
+          </div>
+        ` : `
+          <span class="label mono">WE NEED TO TALK!</span>
+          <button class="icon-btn" id="libBtn" style="z-index:3">${ICON.list}</button>
+        `}
+      </div>
+
+      <h1 class="big-title">We need<br>to talk!</h1>
+
+      <div class="dial-wrap ${rec ? 'rec' : ''}" id="dialWrap">
+        ${buildTicks(0)}
+        <div class="dial-center">
+          ${rec ? `
+            <div class="dial-listening">กำลังฟัง</div>
+            <div class="dial-timer mono" id="dialTimer">00:00</div>
+            <div class="wave" id="waveRow"></div>
+          ` : `
+            <div class="dial-core">${ICON.mic}</div>
+          `}
+        </div>
+      </div>
+
+      ${rec ? `
+        <div class="transcript-card">
+          <div class="transcript-label mono">ถอดเสียงสด</div>
+          <div class="transcript-text empty" id="transcriptBox"></div>
+        </div>
+      ` : `
+        <div class="idle-hint mono">แตะเพื่อเริ่มบันทึกความคิด</div>
+      `}
+
+      ${rec ? `<button class="tap-overlay" id="stopOverlay" aria-label="จบบันทึก"></button>` : `<button class="tap-overlay" id="startOverlay" aria-label="เริ่มบันทึก"></button>`}
+
+      <button class="pill" id="pillBtn">
+        <span class="label">${rec ? 'แตะตรงไหนก็ได้เพื่อจบ' : 'We need to talk'}</span>
+        <span class="pill-icon">${rec ? '<span class="pill-stop-sq"></span>' : ICON.mic}</span>
       </button>
-      <div class="timer mono" id="timer"></div>
-      <div class="transcript-box mono empty" id="transcriptBox"></div>
     </div>
   `;
-  document.getElementById('recBtn').onclick = () => { isRecording ? stopRecording() : startRecording(); };
-  document.getElementById('libBtn').onclick = () => { if(!isRecording) location.hash = '#/library'; };
-  if(isRecording){
+  if(rec){
+    document.getElementById('stopOverlay').onclick = stopRecording;
+    document.getElementById('pillBtn').onclick = stopRecording;
     updateTranscriptDisplay(finalizedText);
     updateTimer();
+  } else {
+    document.getElementById('libBtn').onclick = () => { location.hash = '#/library'; };
+    document.getElementById('startOverlay').onclick = startRecording;
+    document.getElementById('pillBtn').onclick = startRecording;
   }
 }
 
 function renderLibrary(app){
   const list = getRecordings();
+  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
   app.innerHTML = `
-    <div class="topbar">
-      <button class="icon-btn" id="backBtn">←</button>
-      <div class="title mono">คลังบันทึก</div>
-      <div class="spacer"></div>
+    <div class="lib-head">
+      <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+      <h1 class="lib-h1">คลังความคิด</h1>
     </div>
     <div class="lib-list" id="libList"></div>
+    <button class="pill" id="pillBtn">
+      <span class="label">We need to talk</span>
+      <span class="pill-icon">${ICON.mic}</span>
+    </button>
   `;
-  document.getElementById('backBtn').onclick = () => { location.hash = '#/'; };
+  document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
+
   const libList = document.getElementById('libList');
   if(list.length === 0){
-    libList.innerHTML = '<div class="empty-state">ยังไม่มีบันทึกเสียง</div>';
+    libList.innerHTML = `
+      <div class="empty-state">
+        <div class="t1">ยังไม่มีบันทึกเสียง</div>
+        <div class="t2">แตะปุ่มด้านล่างเพื่อเริ่มบันทึกความคิดแรก</div>
+      </div>`;
     return;
   }
-  libList.innerHTML = list.map(r => `
-    <div class="lib-item" data-id="${r.id}">
-      <div class="date mono">${formatDate(r.createdAt)}</div>
-      <div class="preview">${escapeHtml(r.transcript)}</div>
-    </div>
-  `).join('');
+
+  let html = '';
+  let lastGroup = null;
+  list.forEach(r => {
+    const g = dayLabel(r.createdAt);
+    if(g !== lastGroup){ html += `<div class="lib-group-label mono">${g}</div>`; lastGroup = g; }
+    html += `
+      <button class="lib-item" data-id="${r.id}">
+        <div class="meta"><span>${formatTimeShort(r.createdAt)} · ${formatClock(r.durationSec || 0)}</span></div>
+        <div class="preview">${escapeHtml(r.transcript)}</div>
+      </button>`;
+  });
+  libList.innerHTML = html;
   libList.querySelectorAll('.lib-item').forEach(el => {
     el.onclick = () => { location.hash = '#/detail/' + el.dataset.id; };
   });
@@ -257,18 +433,18 @@ function renderDetail(app, id){
   const rec = list.find(r => r.id === id);
   if(!rec){ location.hash = '#/library'; return; }
   app.innerHTML = `
-    <div class="topbar">
-      <button class="icon-btn" id="backBtn">←</button>
-      <div class="title mono">บันทึก</div>
-      <div class="spacer"></div>
-    </div>
-    <div class="detail-screen">
-      <div class="detail-date mono">${formatDate(rec.createdAt)}</div>
-      <div class="detail-text">${escapeHtml(rec.transcript)}</div>
-      <div class="action-row">
-        <button class="btn btn-accent" id="copyBtn">Copy transcript</button>
-        <button class="btn btn-ghost" id="delBtn">ลบ</button>
+    <div class="detail-head">
+      <div class="detail-top-row">
+        <button class="icon-btn" id="backBtn">${ICON.back}</button>
+        <span class="detail-date mono">${formatDateFull(rec.createdAt)}</span>
+        <button class="icon-btn" id="delBtn">${ICON.trash}</button>
       </div>
+    </div>
+    <div class="detail-body">
+      <div class="detail-text">${escapeHtml(rec.transcript)}</div>
+    </div>
+    <div class="detail-footer">
+      <button class="copy-btn" id="copyBtn">${ICON.copy}<span id="copyLabel">Copy transcript</span></button>
     </div>
   `;
   document.getElementById('backBtn').onclick = () => { location.hash = '#/library'; };
@@ -276,8 +452,8 @@ function renderDetail(app, id){
     const btn = document.getElementById('copyBtn');
     try{ await navigator.clipboard.writeText(rec.transcript); }
     catch(e){ fallbackCopy(rec.transcript); }
-    btn.textContent = 'คัดลอกแล้ว ✓';
-    setTimeout(() => { btn.textContent = 'Copy transcript'; }, 1500);
+    btn.innerHTML = `${ICON.check}<span>คัดลอกแล้ว</span>`;
+    setTimeout(() => { btn.innerHTML = `${ICON.copy}<span>Copy transcript</span>`; }, 1500);
   };
   document.getElementById('delBtn').onclick = () => {
     if(confirm('ลบบันทึกนี้?')){
