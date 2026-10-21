@@ -123,6 +123,63 @@
   .copy-btn{width:100%;height:56px;border-radius:28px;border:0;background:var(--ink);
     color:#FFFFFF;font-size:15px;font-weight:500;cursor:pointer;display:flex;align-items:center;
     justify-content:center;gap:10px;}
+
+  /* ---------- view toggle (shelf / list / table) ---------- */
+  .view-toggle{display:flex;height:44px;padding:2px;border-radius:22px;background:var(--card);
+    flex-shrink:0;}
+  .view-toggle-btn{width:40px;height:40px;border-radius:20px;border:0;background:transparent;
+    color:var(--ink);display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .view-toggle-btn.on{background:var(--ink);color:#FFFFFF;}
+
+  /* ---------- welcome ---------- */
+  .welcome-screen{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:28px;padding:24px;position:relative;}
+  .welcome-titles{display:flex;flex-direction:column;align-items:center;gap:10px;}
+  .welcome-greet{color:var(--muted);}
+
+  /* ---------- shelf ---------- */
+  .shelf-list{flex:1;overflow-y:auto;padding:8px 24px calc(120px + env(safe-area-inset-bottom));
+    display:flex;flex-direction:column;gap:24px;}
+  .shelf-section-head{display:flex;align-items:baseline;justify-content:space-between;margin:0 0 2px;}
+  .shelf-section-head h2{margin:0;font-size:16px;font-weight:700;}
+  .shelf-section-head span{font-size:12px;color:var(--muted);}
+  .shelf-row{display:flex;gap:12px;align-items:flex-end;overflow-x:auto;margin:0 -24px;
+    padding:6px 24px 0;}
+  .book{flex-shrink:0;width:108px;height:152px;box-sizing:border-box;padding:14px 10px 20px 14px;
+    border-radius:4px 8px 8px 4px;border:0;cursor:pointer;text-align:left;display:flex;
+    flex-direction:column;justify-content:space-between;box-shadow:0 6px 12px rgba(17,17,17,.12);}
+  .book-title{font-size:13px;line-height:1.3;font-weight:700;display:-webkit-box;
+    -webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden;}
+  .book-meta{display:flex;justify-content:space-between;gap:4px;font-size:9px;}
+  .shelf-ledge{position:relative;z-index:1;margin:-10px 16px 0;height:12px;border-radius:3px;
+    background:rgba(255,255,255,.3);border:1px solid rgba(255,255,255,.7);
+    box-shadow:0 1px 0 rgba(255,255,255,.9) inset,0 6px 10px rgba(17,17,17,.08);}
+
+  /* ---------- table ---------- */
+  .stat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+  .stat-card{padding:14px;border-radius:16px;background:var(--card);display:flex;
+    flex-direction:column;gap:4px;min-width:0;}
+  .stat-card.accent{background:var(--accent);}
+  .stat-num{font-size:19px;font-weight:500;letter-spacing:-.5px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;}
+  .stat-label{font-size:11px;color:var(--muted);}
+  .stat-card.accent .stat-label{color:var(--ink-soft);}
+  .table-wrap{flex:1;margin:16px 24px calc(120px + env(safe-area-inset-bottom));
+    border-radius:20px;background:var(--card);overflow:auto;}
+  .trow{display:grid;grid-template-columns:60px 1fr 56px;gap:10px;align-items:center;
+    padding:0 16px;min-height:52px;border-bottom:1px solid var(--line);width:100%;
+    box-sizing:border-box;background:transparent;border-left:0;border-right:0;border-top:0;
+    text-align:left;color:var(--ink);}
+  .trow.thead{position:sticky;top:0;background:var(--card);min-height:40px;z-index:1;}
+  .tcell{font-size:13px;overflow:hidden;}
+  .tcell.ttitle{font-weight:500;font-size:13px;line-height:1.35;padding:10px 0;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .tcell.right{text-align:right;}
+  .th-btn{background:transparent;border:0;padding:0;cursor:pointer;font-family:'IBM Plex Mono',monospace;
+    font-size:11px;letter-spacing:1px;color:var(--muted);text-align:left;}
+  .th-btn.active{color:var(--ink);}
+  .th-btn.right{text-align:right;}
+  .tr-item{cursor:pointer;}
 </style>
 </head>
 <body>
@@ -134,6 +191,8 @@ const thWeekdays = ['อา.','จ.','อ.','พ.','พฤ.','ศ.','ส.'];
 
 const ICON = {
   list: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><path d="M4.5 6h.01"></path><path d="M4.5 12h.01"></path><path d="M4.5 18h.01"></path></svg>',
+  shelf: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="5" width="4" height="14" rx="1"></rect><rect x="10" y="5" width="4" height="14" rx="1"></rect><path d="M16.5 6l3.5 12.5"></path><path d="M3 21h18"></path></svg>',
+  table: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"></rect><path d="M3 10h18"></path><path d="M9 10v10"></path></svg>',
   mic: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"></rect><path d="M5 11a7 7 0 0014 0"></path><path d="M12 18v3"></path></svg>',
   back: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
   trash: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12"></path><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"></path></svg>',
@@ -336,8 +395,8 @@ function renderRecord(app){
             <span>ไม่อัปโหลดไฟล์เสียง</span>
           </div>
         ` : `
-          <span class="label mono">WE NEED TO TALK!</span>
-          <button class="icon-btn" id="libBtn" style="z-index:3">${ICON.list}</button>
+          <button class="label mono" id="brandBtn" style="background:none;border:0;padding:0;cursor:pointer;color:var(--muted)">WE NEED TO TALK!</button>
+          <button class="icon-btn" id="libBtn" style="z-index:3">${ICON.shelf}</button>
         `}
       </div>
 
@@ -379,10 +438,184 @@ function renderRecord(app){
     updateTranscriptDisplay(finalizedText);
     updateTimer();
   } else {
-    document.getElementById('libBtn').onclick = () => { location.hash = '#/library'; };
+    document.getElementById('libBtn').onclick = () => { location.hash = '#/shelf'; };
+    document.getElementById('brandBtn').onclick = () => { location.hash = '#/welcome'; };
     document.getElementById('startOverlay').onclick = startRecording;
     document.getElementById('pillBtn').onclick = startRecording;
   }
+}
+
+function renderViewToggle(active){
+  const items = [
+    { key: 'shelf', icon: ICON.shelf, href: '#/shelf', label: 'ดูแบบชั้นวาง' },
+    { key: 'list', icon: ICON.list, href: '#/library', label: 'ดูแบบรายการ' },
+    { key: 'table', icon: ICON.table, href: '#/table', label: 'ดูแบบตาราง' }
+  ];
+  return `<div class="view-toggle" role="group" aria-label="มุมมองคลัง">` +
+    items.map(it => `<button class="view-toggle-btn ${it.key === active ? 'on' : ''}" data-href="${it.href}" aria-label="${it.label}">${it.icon}</button>`).join('') +
+    `</div>`;
+}
+function bindViewToggle(){
+  document.querySelectorAll('.view-toggle-btn').forEach(b => {
+    b.onclick = () => { location.hash = b.dataset.href; };
+  });
+}
+function themeFor(text){
+  let h = 7;
+  for(let i = 0; i < text.length; i++){ h = (h*31 + text.charCodeAt(i)) % 100003; }
+  const themes = [
+    { bg: 'var(--card)', fg: 'var(--ink)', meta: 'var(--muted)' },
+    { bg: 'var(--ink)', fg: '#FFFFFF', meta: '#BDBDB5' },
+    { bg: 'var(--accent)', fg: 'var(--ink)', meta: 'var(--ink-soft)' }
+  ];
+  return themes[h % 3];
+}
+function bookCard(r){
+  const t = themeFor(r.transcript);
+  return `
+    <button class="book" data-id="${r.id}" style="background:${t.bg};color:${t.fg}">
+      <span class="book-title">${escapeHtml(r.transcript)}</span>
+      <span class="book-meta mono" style="color:${t.meta}"><span>${formatTimeShort(r.createdAt)}</span><span>${formatClock(r.durationSec || 0)}</span></span>
+    </button>`;
+}
+function dayShort(iso){
+  const d = new Date(iso);
+  return `${d.getDate()} ${thMonths[d.getMonth()]}`;
+}
+
+function renderWelcome(app){
+  const hr = new Date().getHours();
+  const greet = hr < 12 ? 'อรุณสวัสดิ์' : (hr < 17 ? 'สวัสดีตอนบ่าย' : 'สวัสดีตอนเย็น');
+  app.innerHTML = `
+    <div class="welcome-screen">
+      <div class="dial-wrap" id="welcomeDial">
+        ${buildTicks(0)}
+        <div class="dial-center"><div class="dial-core">${ICON.mic}</div></div>
+      </div>
+      <div class="welcome-titles">
+        <h1 class="big-title" style="font-size:44px">We need<br>to talk!</h1>
+        <span class="mono welcome-greet">${greet}</span>
+      </div>
+      <span class="idle-hint mono">แตะเพื่อเข้าคลังความคิด</span>
+      <button class="tap-overlay" id="welcomeOverlay" aria-label="เข้าคลังความคิด"></button>
+    </div>
+  `;
+  document.getElementById('welcomeOverlay').onclick = () => { location.hash = '#/shelf'; };
+}
+
+function renderShelf(app){
+  const list = getRecordings();
+  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
+  app.innerHTML = `
+    <div class="lib-head">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+        ${renderViewToggle('shelf')}
+      </div>
+      <h1 class="lib-h1">คลังความคิด</h1>
+    </div>
+    <div class="shelf-list" id="shelfList"></div>
+    <button class="pill" id="pillBtn">
+      <span class="label">We need to talk</span>
+      <span class="pill-icon">${ICON.mic}</span>
+    </button>
+  `;
+  bindViewToggle();
+  document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
+
+  const wrap = document.getElementById('shelfList');
+  if(list.length === 0){
+    wrap.innerHTML = `
+      <div class="empty-state">
+        <div class="t1">ยังไม่มีบันทึกเสียง</div>
+        <div class="t2">แตะปุ่มด้านล่างเพื่อเริ่มบันทึกความคิดแรก</div>
+      </div>`;
+    return;
+  }
+  const groups = [];
+  list.forEach(r => {
+    const g = dayLabel(r.createdAt);
+    let last = groups[groups.length - 1];
+    if(!last || last.label !== g){ last = { label: g, items: [] }; groups.push(last); }
+    last.items.push(r);
+  });
+  wrap.innerHTML = groups.map(g => `
+    <section>
+      <div class="shelf-section-head"><h2>${g.label}</h2><span class="mono">${g.items.length} บันทึก</span></div>
+      <div class="shelf-row">${g.items.map(bookCard).join('')}</div>
+      <div class="shelf-ledge"></div>
+    </section>
+  `).join('');
+  wrap.querySelectorAll('.book').forEach(el => {
+    el.onclick = () => { location.hash = '#/detail/' + el.dataset.id; };
+  });
+}
+
+let tableSortKey = 'date', tableSortDesc = true;
+function renderTableRows(list){
+  const wrap = document.getElementById('tableWrap');
+  if(!wrap) return;
+  if(list.length === 0){
+    wrap.innerHTML = `<div class="empty-state"><div class="t1">ยังไม่มีบันทึกเสียง</div></div>`;
+    return;
+  }
+  const sorted = list.slice().sort((a, b) => {
+    const va = tableSortKey === 'date' ? new Date(a.createdAt).getTime() : (a.durationSec || 0);
+    const vb = tableSortKey === 'date' ? new Date(b.createdAt).getTime() : (b.durationSec || 0);
+    return tableSortDesc ? vb - va : va - vb;
+  });
+  const arrow = tableSortDesc ? '↓' : '↑';
+  wrap.innerHTML = `
+    <div class="trow thead">
+      <button class="tcell th-btn ${tableSortKey === 'date' ? 'active' : ''}" data-sort="date">วันที่ ${tableSortKey === 'date' ? arrow : ''}</button>
+      <span class="tcell">ข้อความ</span>
+      <button class="tcell th-btn right ${tableSortKey === 'dur' ? 'active' : ''}" data-sort="dur">ยาว ${tableSortKey === 'dur' ? arrow : ''}</button>
+    </div>
+    ${sorted.map(r => `
+      <button class="trow tr-item" data-id="${r.id}">
+        <span class="tcell mono" style="color:var(--muted)">${dayShort(r.createdAt)}<br>${formatTimeShort(r.createdAt)}</span>
+        <span class="tcell ttitle">${escapeHtml(r.transcript)}</span>
+        <span class="tcell mono right">${formatClock(r.durationSec || 0)}</span>
+      </button>`).join('')}
+  `;
+  wrap.querySelectorAll('.th-btn').forEach(b => {
+    b.onclick = () => {
+      const k = b.dataset.sort;
+      if(tableSortKey === k){ tableSortDesc = !tableSortDesc; } else { tableSortKey = k; tableSortDesc = true; }
+      renderTableRows(getRecordings());
+    };
+  });
+  wrap.querySelectorAll('.tr-item').forEach(el => {
+    el.onclick = () => { location.hash = '#/detail/' + el.dataset.id; };
+  });
+}
+
+function renderTable(app){
+  const list = getRecordings();
+  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
+  const avgSec = list.length ? Math.round(totalSec / list.length) : 0;
+  app.innerHTML = `
+    <div class="lib-head">
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+        ${renderViewToggle('table')}
+      </div>
+      <h1 class="lib-h1">คลังความคิด</h1>
+      <div class="stat-grid">
+        <div class="stat-card"><span class="stat-num mono">${list.length}</span><span class="stat-label">บันทึก</span></div>
+        <div class="stat-card"><span class="stat-num mono">${formatTotalDuration(totalSec)}</span><span class="stat-label">รวมเวลา</span></div>
+        <div class="stat-card accent"><span class="stat-num mono">${formatClock(avgSec)}</span><span class="stat-label">เฉลี่ย/บันทึก</span></div>
+      </div>
+    </div>
+    <div class="table-wrap" id="tableWrap"></div>
+    <button class="pill" id="pillBtn">
+      <span class="label">We need to talk</span>
+      <span class="pill-icon">${ICON.mic}</span>
+    </button>
+  `;
+  bindViewToggle();
+  document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
+  renderTableRows(list);
 }
 
 function renderLibrary(app){
@@ -390,7 +623,10 @@ function renderLibrary(app){
   const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
   app.innerHTML = `
     <div class="lib-head">
-      <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+      <div style="display:flex;align-items:center;justify-content:space-between">
+        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+        ${renderViewToggle('list')}
+      </div>
       <h1 class="lib-h1">คลังความคิด</h1>
     </div>
     <div class="lib-list" id="libList"></div>
@@ -399,6 +635,7 @@ function renderLibrary(app){
       <span class="pill-icon">${ICON.mic}</span>
     </button>
   `;
+  bindViewToggle();
   document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
 
   const libList = document.getElementById('libList');
@@ -470,6 +707,12 @@ function render(){
     renderDetail(app, hash.split('/')[2]);
   } else if(hash === '#/library'){
     renderLibrary(app);
+  } else if(hash === '#/shelf'){
+    renderShelf(app);
+  } else if(hash === '#/table'){
+    renderTable(app);
+  } else if(hash === '#/welcome'){
+    renderWelcome(app);
   } else {
     renderRecord(app);
   }
