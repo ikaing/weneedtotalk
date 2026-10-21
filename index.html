@@ -197,7 +197,14 @@ const ICON = {
   back: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"></path></svg>',
   trash: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M6 7l1 12a2 2 0 002 2h6a2 2 0 002-2l1-12"></path><path d="M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2"></path></svg>',
   copy: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15V5a1 1 0 011-1h10"></path></svg>',
-  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>'
+  check: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5 9-10"></path></svg>',
+  search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>',
+  close: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12"></path><path d="M18 6L6 18"></path></svg>',
+  star: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z"></path></svg>',
+  starFill: '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z"></path></svg>',
+  starFillMini: '<svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.3 5.9.9-4.25 4.1 1 5.8L12 16.9l-5.25 2.7 1-5.8L3.5 9.7l5.9-.9z"></path></svg>',
+  download: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"></path><path d="M7 10l5 5 5-5"></path><path d="M5 20h14"></path></svg>',
+  upload: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12"></path><path d="M7 8l5-5 5 5"></path><path d="M5 15v4a2 2 0 002 2h10a2 2 0 002-2v-4"></path></svg>'
 };
 
 let recognition = null;
@@ -206,6 +213,9 @@ let finalizedText = '';
 let recordStartTime = 0;
 let timerInterval = null;
 let wakeLock = null;
+let searchQuery = '';
+let isSearching = false;
+let favOnlyFilter = false;
 
 function getRecordings(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ return []; }
@@ -375,7 +385,7 @@ function stopRecording(){
   finalizedText = '';
   if(text){
     const list = getRecordings();
-    const rec = { id: Date.now().toString(), createdAt: new Date().toISOString(), transcript: text, durationSec };
+    const rec = { id: Date.now().toString(), createdAt: new Date().toISOString(), transcript: text, durationSec, fav: false };
     list.unshift(rec);
     saveRecordings(list);
     location.hash = '#/detail/' + rec.id;
@@ -460,6 +470,95 @@ function bindViewToggle(){
     b.onclick = () => { location.hash = b.dataset.href; };
   });
 }
+
+function applyFilters(list){
+  let out = list;
+  if(favOnlyFilter) out = out.filter(r => r.fav);
+  const q = searchQuery.trim().toLowerCase();
+  if(q) out = out.filter(r => r.transcript.toLowerCase().indexOf(q) !== -1);
+  return out;
+}
+function emptyMessage(){
+  if(searchQuery.trim()) return { t1: `ไม่พบบันทึกที่มีคำว่า "${searchQuery.trim()}"`, t2: 'ลองคำอื่น หรือพูดเรื่องนี้ใหม่เลยก็ได้' };
+  if(favOnlyFilter) return { t1: 'ยังไม่มีบันทึกที่ติดดาว', t2: 'กดรูปดาวในหน้ารายละเอียดเพื่อติดดาวบันทึกที่ชอบ' };
+  return { t1: 'ยังไม่มีบันทึกเสียง', t2: 'แตะปุ่มด้านล่างเพื่อเริ่มบันทึกความคิดแรก' };
+}
+function libHeadHTML(active, totalList, extraHTML){
+  const totalSec = totalList.reduce((s, r) => s + (r.durationSec || 0), 0);
+  const searchOn = isSearching ? 'background:var(--ink);color:#FFFFFF' : '';
+  const favOn = favOnlyFilter ? 'background:var(--ink);color:#FFFFFF' : '';
+  return `
+    <div class="lib-head">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+        <span class="lib-stats mono">${totalList.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <button class="icon-btn" id="searchBtn" style="${searchOn}" aria-label="ค้นหาบันทึก">${isSearching ? ICON.close : ICON.search}</button>
+          <button class="icon-btn" id="favFilterBtn" style="${favOn}" aria-label="แสดงเฉพาะที่ติดดาว">${favOnlyFilter ? ICON.starFill : ICON.star}</button>
+          ${renderViewToggle(active)}
+        </div>
+      </div>
+      ${isSearching ? `
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="searchInput" class="mono" style="font-size:12px;letter-spacing:1px;color:var(--muted)">ค้นหาจากข้อความ</label>
+          <input id="searchInput" type="search" value="${escapeHtml(searchQuery)}" placeholder="เช่น ประชุม, AI, ไอเดีย" style="height:52px;box-sizing:border-box;padding:0 18px;border-radius:26px;border:1.5px solid var(--ink);background:var(--card);font-family:'IBM Plex Sans Thai',sans-serif;font-size:17px;color:var(--ink);outline:none">
+        </div>
+      ` : `<h1 class="lib-h1">คลังความคิด</h1>`}
+      ${extraHTML || ''}
+    </div>
+  `;
+}
+function bindLibHead(fullRerender, bodyOnly){
+  bindViewToggle();
+  document.getElementById('searchBtn').onclick = () => { isSearching = !isSearching; if(!isSearching) searchQuery = ''; fullRerender(); };
+  document.getElementById('favFilterBtn').onclick = () => { favOnlyFilter = !favOnlyFilter; fullRerender(); };
+  const input = document.getElementById('searchInput');
+  if(input){
+    input.focus();
+    const v = input.value; input.value = ''; input.value = v;
+    input.oninput = () => { searchQuery = input.value; bodyOnly(); };
+  }
+}
+
+async function exportBackup(){
+  const data = getRecordings();
+  const json = JSON.stringify({ app: 'we-need-to-talk', exportedAt: new Date().toISOString(), recordings: data }, null, 2);
+  const filename = 'we-need-to-talk-backup-' + new Date().toISOString().slice(0,10) + '.json';
+  const blob = new Blob([json], { type: 'application/json' });
+  if(navigator.canShare && navigator.canShare({ files: [new File([blob], filename, { type: 'application/json' })] })){
+    try{
+      await navigator.share({ files: [new File([blob], filename, { type: 'application/json' })], title: filename });
+      return;
+    }catch(e){ /* cancelled or failed, fall back to download */ }
+  }
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+function importBackup(file, onDone){
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      const incoming = Array.isArray(parsed) ? parsed : (Array.isArray(parsed.recordings) ? parsed.recordings : null);
+      if(!incoming) throw new Error('invalid');
+      const current = getRecordings();
+      const byId = {};
+      current.forEach(r => { byId[r.id] = r; });
+      incoming.forEach(r => { if(r && r.id && r.transcript){ byId[r.id] = r; } });
+      const merged = Object.values(byId).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      saveRecordings(merged);
+      alert('นำเข้าข้อมูลสำเร็จ: ' + incoming.length + ' รายการ');
+      if(onDone) onDone();
+    }catch(e){
+      alert('ไฟล์นี้ใช้ไม่ได้ ตรวจสอบว่าเป็นไฟล์สำรองที่ export จากแอปนี้');
+    }
+  };
+  reader.readAsText(file);
+}
+
 function themeFor(text){
   let h = 7;
   for(let i = 0; i < text.length; i++){ h = (h*31 + text.charCodeAt(i)) % 100003; }
@@ -472,8 +571,10 @@ function themeFor(text){
 }
 function bookCard(r){
   const t = themeFor(r.transcript);
+  const star = r.fav ? `<span style="position:absolute;top:10px;right:8px;color:${t.fg}">${ICON.starFillMini}</span>` : '';
   return `
-    <button class="book" data-id="${r.id}" style="background:${t.bg};color:${t.fg}">
+    <button class="book" data-id="${r.id}" style="background:${t.bg};color:${t.fg};position:relative">
+      ${star}
       <span class="book-title">${escapeHtml(r.transcript)}</span>
       <span class="book-meta mono" style="color:${t.meta}"><span>${formatTimeShort(r.createdAt)}</span><span>${formatClock(r.durationSec || 0)}</span></span>
     </button>`;
@@ -504,31 +605,28 @@ function renderWelcome(app){
 }
 
 function renderShelf(app){
-  const list = getRecordings();
-  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
-  app.innerHTML = `
-    <div class="lib-head">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
-        ${renderViewToggle('shelf')}
-      </div>
-      <h1 class="lib-h1">คลังความคิด</h1>
-    </div>
+  const total = getRecordings();
+  app.innerHTML = libHeadHTML('shelf', total) + `
     <div class="shelf-list" id="shelfList"></div>
     <button class="pill" id="pillBtn">
       <span class="label">We need to talk</span>
       <span class="pill-icon">${ICON.mic}</span>
     </button>
   `;
-  bindViewToggle();
   document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
-
+  bindLibHead(() => renderShelf(app), renderShelfBody);
+  renderShelfBody();
+}
+function renderShelfBody(){
   const wrap = document.getElementById('shelfList');
+  if(!wrap) return;
+  const list = applyFilters(getRecordings());
   if(list.length === 0){
+    const m = emptyMessage();
     wrap.innerHTML = `
       <div class="empty-state">
-        <div class="t1">ยังไม่มีบันทึกเสียง</div>
-        <div class="t2">แตะปุ่มด้านล่างเพื่อเริ่มบันทึกความคิดแรก</div>
+        <div class="t1">${m.t1}</div>
+        <div class="t2">${m.t2}</div>
       </div>`;
     return;
   }
@@ -556,7 +654,8 @@ function renderTableRows(list){
   const wrap = document.getElementById('tableWrap');
   if(!wrap) return;
   if(list.length === 0){
-    wrap.innerHTML = `<div class="empty-state"><div class="t1">ยังไม่มีบันทึกเสียง</div></div>`;
+    const m = emptyMessage();
+    wrap.innerHTML = `<div class="empty-state"><div class="t1">${m.t1}</div><div class="t2">${m.t2}</div></div>`;
     return;
   }
   const sorted = list.slice().sort((a, b) => {
@@ -582,7 +681,7 @@ function renderTableRows(list){
     b.onclick = () => {
       const k = b.dataset.sort;
       if(tableSortKey === k){ tableSortDesc = !tableSortDesc; } else { tableSortKey = k; tableSortDesc = true; }
-      renderTableRows(getRecordings());
+      renderTableRows(applyFilters(getRecordings()));
     };
   });
   wrap.querySelectorAll('.tr-item').forEach(el => {
@@ -591,59 +690,59 @@ function renderTableRows(list){
 }
 
 function renderTable(app){
-  const list = getRecordings();
-  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
-  const avgSec = list.length ? Math.round(totalSec / list.length) : 0;
-  app.innerHTML = `
-    <div class="lib-head">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
-        ${renderViewToggle('table')}
-      </div>
-      <h1 class="lib-h1">คลังความคิด</h1>
-      <div class="stat-grid">
-        <div class="stat-card"><span class="stat-num mono">${list.length}</span><span class="stat-label">บันทึก</span></div>
-        <div class="stat-card"><span class="stat-num mono">${formatTotalDuration(totalSec)}</span><span class="stat-label">รวมเวลา</span></div>
-        <div class="stat-card accent"><span class="stat-num mono">${formatClock(avgSec)}</span><span class="stat-label">เฉลี่ย/บันทึก</span></div>
-      </div>
+  const total = getRecordings();
+  const totalSec = total.reduce((sum, r) => sum + (r.durationSec || 0), 0);
+  const avgSec = total.length ? Math.round(totalSec / total.length) : 0;
+  const extra = `
+    <div class="stat-grid">
+      <div class="stat-card"><span class="stat-num mono">${total.length}</span><span class="stat-label">บันทึก</span></div>
+      <div class="stat-card"><span class="stat-num mono">${formatTotalDuration(totalSec)}</span><span class="stat-label">รวมเวลา</span></div>
+      <div class="stat-card accent"><span class="stat-num mono">${formatClock(avgSec)}</span><span class="stat-label">เฉลี่ย/บันทึก</span></div>
     </div>
+    <div style="display:flex;gap:8px">
+      <button class="icon-btn" id="importBtn" aria-label="นำเข้าไฟล์สำรอง">${ICON.upload}</button>
+      <button class="icon-btn" id="exportBtn" aria-label="ส่งออก/สำรองข้อมูล">${ICON.download}</button>
+      <input type="file" id="importFile" accept="application/json" style="display:none">
+    </div>
+  `;
+  app.innerHTML = libHeadHTML('table', total, extra) + `
     <div class="table-wrap" id="tableWrap"></div>
     <button class="pill" id="pillBtn">
       <span class="label">We need to talk</span>
       <span class="pill-icon">${ICON.mic}</span>
     </button>
   `;
-  bindViewToggle();
   document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
-  renderTableRows(list);
+  bindLibHead(() => renderTable(app), () => renderTableRows(applyFilters(getRecordings())));
+  document.getElementById('exportBtn').onclick = exportBackup;
+  document.getElementById('importBtn').onclick = () => document.getElementById('importFile').click();
+  document.getElementById('importFile').onchange = (e) => importBackup(e.target.files[0], () => renderTable(app));
+  renderTableRows(applyFilters(total));
 }
 
 function renderLibrary(app){
-  const list = getRecordings();
-  const totalSec = list.reduce((sum, r) => sum + (r.durationSec || 0), 0);
-  app.innerHTML = `
-    <div class="lib-head">
-      <div style="display:flex;align-items:center;justify-content:space-between">
-        <span class="lib-stats mono">${list.length} บันทึก · ${formatTotalDuration(totalSec)}</span>
-        ${renderViewToggle('list')}
-      </div>
-      <h1 class="lib-h1">คลังความคิด</h1>
-    </div>
+  const total = getRecordings();
+  app.innerHTML = libHeadHTML('list', total) + `
     <div class="lib-list" id="libList"></div>
     <button class="pill" id="pillBtn">
       <span class="label">We need to talk</span>
       <span class="pill-icon">${ICON.mic}</span>
     </button>
   `;
-  bindViewToggle();
   document.getElementById('pillBtn').onclick = () => { location.hash = '#/'; };
-
+  bindLibHead(() => renderLibrary(app), renderLibraryBody);
+  renderLibraryBody();
+}
+function renderLibraryBody(){
   const libList = document.getElementById('libList');
+  if(!libList) return;
+  const list = applyFilters(getRecordings());
   if(list.length === 0){
+    const m = emptyMessage();
     libList.innerHTML = `
       <div class="empty-state">
-        <div class="t1">ยังไม่มีบันทึกเสียง</div>
-        <div class="t2">แตะปุ่มด้านล่างเพื่อเริ่มบันทึกความคิดแรก</div>
+        <div class="t1">${m.t1}</div>
+        <div class="t2">${m.t2}</div>
       </div>`;
     return;
   }
@@ -655,7 +754,7 @@ function renderLibrary(app){
     if(g !== lastGroup){ html += `<div class="lib-group-label mono">${g}</div>`; lastGroup = g; }
     html += `
       <button class="lib-item" data-id="${r.id}">
-        <div class="meta"><span>${formatTimeShort(r.createdAt)} · ${formatClock(r.durationSec || 0)}</span></div>
+        <div class="meta"><span>${formatTimeShort(r.createdAt)} · ${formatClock(r.durationSec || 0)}</span>${r.fav ? `<span>${ICON.starFillMini}</span>` : ''}</div>
         <div class="preview">${escapeHtml(r.transcript)}</div>
       </button>`;
   });
@@ -674,7 +773,10 @@ function renderDetail(app, id){
       <div class="detail-top-row">
         <button class="icon-btn" id="backBtn">${ICON.back}</button>
         <span class="detail-date mono">${formatDateFull(rec.createdAt)}</span>
-        <button class="icon-btn" id="delBtn">${ICON.trash}</button>
+        <div style="display:flex;gap:8px">
+          <button class="icon-btn" id="favBtn" aria-pressed="${rec.fav ? 'true' : 'false'}" aria-label="ติดดาวบันทึกนี้">${rec.fav ? ICON.starFill : ICON.star}</button>
+          <button class="icon-btn" id="delBtn">${ICON.trash}</button>
+        </div>
       </div>
     </div>
     <div class="detail-body">
@@ -685,6 +787,14 @@ function renderDetail(app, id){
     </div>
   `;
   document.getElementById('backBtn').onclick = () => { location.hash = '#/library'; };
+  document.getElementById('favBtn').onclick = () => {
+    const all = getRecordings();
+    const idx = all.findIndex(r => r.id === id);
+    if(idx === -1) return;
+    all[idx].fav = !all[idx].fav;
+    saveRecordings(all);
+    renderDetail(app, id);
+  };
   document.getElementById('copyBtn').onclick = async () => {
     const btn = document.getElementById('copyBtn');
     try{ await navigator.clipboard.writeText(rec.transcript); }
