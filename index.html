@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>We need to talk!</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="We need to talk!">
+<meta name="theme-color" content="#F2F2EF">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F2F2EF;
+    --ink:#111111;
+    --accent:#DCF25A;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);height:100%;
+    font-family:'IBM Plex Sans Thai',sans-serif;-webkit-tap-highlight-color:transparent;}
+  button{font-family:inherit;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  #app{min-height:100vh;display:flex;flex-direction:column;}
+  .topbar{display:flex;align-items:center;justify-content:space-between;
+    padding:calc(16px + env(safe-area-inset-top)) 20px 12px;}
+  .topbar .title{font-size:13px;letter-spacing:0.08em;text-transform:uppercase;}
+  .icon-btn{background:none;border:none;font-size:22px;color:var(--ink);cursor:pointer;
+    padding:8px;line-height:1;}
+  .icon-btn:disabled{opacity:.25;}
+  .spacer{width:38px;}
+  .record-screen{flex:1;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;padding:24px;gap:22px;}
+  .record-btn{width:170px;height:170px;border-radius:50%;border:none;background:var(--accent);
+    color:var(--ink);font-size:17px;font-weight:600;cursor:pointer;display:flex;
+    align-items:center;justify-content:center;text-align:center;transition:background .2s,color .2s;}
+  .record-btn.active{background:var(--ink);color:var(--accent);animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(17,17,17,0.0);}
+    50%{box-shadow:0 0 0 14px rgba(17,17,17,0.08);}
+  }
+  .timer{font-size:15px;opacity:.55;min-height:18px;}
+  .transcript-box{width:100%;max-width:480px;min-height:110px;max-height:38vh;overflow-y:auto;
+    background:#fff;border:1px solid rgba(17,17,17,0.12);border-radius:12px;padding:16px;
+    font-size:16px;line-height:1.65;white-space:pre-wrap;}
+  .transcript-box.empty::before{content:"transcript จะขึ้นที่นี่…";opacity:.4;}
+  .lib-list{flex:1;overflow-y:auto;padding:0 20px calc(40px + env(safe-area-inset-bottom));}
+  .lib-item{display:block;width:100%;text-align:left;background:#fff;
+    border:1px solid rgba(17,17,17,0.1);border-radius:12px;padding:14px 16px;
+    margin-bottom:10px;cursor:pointer;}
+  .lib-item .date{font-size:12px;opacity:.5;margin-bottom:4px;}
+  .lib-item .preview{font-size:14px;line-height:1.5;overflow:hidden;text-overflow:ellipsis;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+  .empty-state{opacity:.5;padding:60px 20px;text-align:center;font-size:14px;}
+  .detail-screen{flex:1;display:flex;flex-direction:column;
+    padding:0 20px calc(40px + env(safe-area-inset-bottom));}
+  .detail-date{font-size:12px;opacity:.5;margin-bottom:16px;}
+  .detail-text{font-size:16px;line-height:1.8;white-space:pre-wrap;flex:1;}
+  .action-row{display:flex;gap:10px;margin-top:20px;}
+  .btn{font-size:14px;font-weight:600;padding:12px 18px;border-radius:10px;border:none;
+    cursor:pointer;font-family:'IBM Plex Sans Thai',sans-serif;}
+  .btn-accent{background:var(--accent);color:var(--ink);}
+  .btn-ghost{background:transparent;color:var(--ink);opacity:.5;}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const STORAGE_KEY = 'wntt_recordings';
+const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+
+let recognition = null;
+let isRecording = false;
+let finalizedText = '';
+let recordStartTime = 0;
+let timerInterval = null;
+let wakeLock = null;
+
+function getRecordings(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ return []; }
+}
+function saveRecordings(list){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+}
+function formatDate(iso){
+  const d = new Date(iso);
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  return `${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear()} · ${hh}:${mm}`;
+}
+function fallbackCopy(text){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.focus(); ta.select();
+  try{ document.execCommand('copy'); }catch(e){}
+  document.body.removeChild(ta);
+}
+
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){ wakeLock = await navigator.wakeLock.request('screen'); }
+  }catch(e){}
+}
+function releaseWakeLock(){
+  if(wakeLock){ wakeLock.release().catch(()=>{}); wakeLock = null; }
+}
+document.addEventListener('visibilitychange', async () => {
+  if(isRecording && document.visibilityState === 'visible' && wakeLock === null){
+    await requestWakeLock();
+  }
+});
+
+function updateTimer(){
+  const el = document.getElementById('timer');
+  if(!el) return;
+  const sec = Math.floor((Date.now() - recordStartTime)/1000);
+  const mm = String(Math.floor(sec/60)).padStart(2,'0');
+  const ss = String(sec%60).padStart(2,'0');
+  el.textContent = `${mm}:${ss}`;
+}
+
+function updateTranscriptDisplay(text){
+  const box = document.getElementById('transcriptBox');
+  if(!box) return;
+  box.textContent = text;
+  box.classList.toggle('empty', !text);
+  box.scrollTop = box.scrollHeight;
+}
+
+function createRecognition(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR) return null;
+  const r = new SR();
+  r.lang = 'th-TH';
+  r.continuous = true;
+  r.interimResults = true;
+  return r;
+}
+
+function startRecording(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    alert('เบราว์เซอร์นี้ไม่รองรับการถอดเสียง กรุณาเปิดด้วย Safari');
+    return;
+  }
+  isRecording = true;
+  finalizedText = '';
+  recordStartTime = Date.now();
+  if(timerInterval) clearInterval(timerInterval);
+  timerInterval = setInterval(updateTimer, 500);
+
+  recognition = createRecognition();
+  recognition.onresult = (e) => {
+    let interim = '';
+    for(let i = e.resultIndex; i < e.results.length; i++){
+      const t = e.results[i][0].transcript;
+      if(e.results[i].isFinal){ finalizedText += t + ' '; }
+      else{ interim += t; }
+    }
+    updateTranscriptDisplay(finalizedText + interim);
+  };
+  recognition.onend = () => {
+    if(isRecording){
+      try{ recognition.start(); }
+      catch(err){ setTimeout(() => { if(isRecording) try{ recognition.start(); }catch(e){} }, 300); }
+    }
+  };
+  recognition.onerror = (e) => {
+    if(e.error === 'not-allowed' || e.error === 'service-not-allowed'){
+      isRecording = false;
+      alert('กรุณาอนุญาตให้ใช้ไมโครโฟน แล้วลองแตะเริ่มใหม่');
+      render();
+    }
+  };
+  recognition.start();
+  requestWakeLock();
+  render();
+}
+
+function stopRecording(){
+  isRecording = false;
+  if(recognition){ recognition.onend = null; try{ recognition.stop(); }catch(e){} }
+  if(timerInterval){ clearInterval(timerInterval); timerInterval = null; }
+  releaseWakeLock();
+
+  const text = finalizedText.trim();
+  finalizedText = '';
+  if(text){
+    const list = getRecordings();
+    const rec = { id: Date.now().toString(), createdAt: new Date().toISOString(), transcript: text };
+    list.unshift(rec);
+    saveRecordings(list);
+    location.hash = '#/detail/' + rec.id;
+  } else {
+    render();
+  }
+}
+
+function renderRecord(app){
+  app.innerHTML = `
+    <div class="topbar">
+      <div class="title mono">WE NEED TO TALK!</div>
+      <button class="icon-btn" id="libBtn" ${isRecording ? 'disabled' : ''}>☰</button>
+    </div>
+    <div class="record-screen">
+      <button class="record-btn ${isRecording ? 'active' : ''}" id="recBtn">
+        ${isRecording ? 'แตะเพื่อจบ' : 'แตะเพื่อเริ่ม'}
+      </button>
+      <div class="timer mono" id="timer"></div>
+      <div class="transcript-box mono empty" id="transcriptBox"></div>
+    </div>
+  `;
+  document.getElementById('recBtn').onclick = () => { isRecording ? stopRecording() : startRecording(); };
+  document.getElementById('libBtn').onclick = () => { if(!isRecording) location.hash = '#/library'; };
+  if(isRecording){
+    updateTranscriptDisplay(finalizedText);
+    updateTimer();
+  }
+}
+
+function renderLibrary(app){
+  const list = getRecordings();
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="icon-btn" id="backBtn">←</button>
+      <div class="title mono">คลังบันทึก</div>
+      <div class="spacer"></div>
+    </div>
+    <div class="lib-list" id="libList"></div>
+  `;
+  document.getElementById('backBtn').onclick = () => { location.hash = '#/'; };
+  const libList = document.getElementById('libList');
+  if(list.length === 0){
+    libList.innerHTML = '<div class="empty-state">ยังไม่มีบันทึกเสียง</div>';
+    return;
+  }
+  libList.innerHTML = list.map(r => `
+    <div class="lib-item" data-id="${r.id}">
+      <div class="date mono">${formatDate(r.createdAt)}</div>
+      <div class="preview">${escapeHtml(r.transcript)}</div>
+    </div>
+  `).join('');
+  libList.querySelectorAll('.lib-item').forEach(el => {
+    el.onclick = () => { location.hash = '#/detail/' + el.dataset.id; };
+  });
+}
+
+function renderDetail(app, id){
+  const list = getRecordings();
+  const rec = list.find(r => r.id === id);
+  if(!rec){ location.hash = '#/library'; return; }
+  app.innerHTML = `
+    <div class="topbar">
+      <button class="icon-btn" id="backBtn">←</button>
+      <div class="title mono">บันทึก</div>
+      <div class="spacer"></div>
+    </div>
+    <div class="detail-screen">
+      <div class="detail-date mono">${formatDate(rec.createdAt)}</div>
+      <div class="detail-text">${escapeHtml(rec.transcript)}</div>
+      <div class="action-row">
+        <button class="btn btn-accent" id="copyBtn">Copy transcript</button>
+        <button class="btn btn-ghost" id="delBtn">ลบ</button>
+      </div>
+    </div>
+  `;
+  document.getElementById('backBtn').onclick = () => { location.hash = '#/library'; };
+  document.getElementById('copyBtn').onclick = async () => {
+    const btn = document.getElementById('copyBtn');
+    try{ await navigator.clipboard.writeText(rec.transcript); }
+    catch(e){ fallbackCopy(rec.transcript); }
+    btn.textContent = 'คัดลอกแล้ว ✓';
+    setTimeout(() => { btn.textContent = 'Copy transcript'; }, 1500);
+  };
+  document.getElementById('delBtn').onclick = () => {
+    if(confirm('ลบบันทึกนี้?')){
+      saveRecordings(getRecordings().filter(r => r.id !== id));
+      location.hash = '#/library';
+    }
+  };
+}
+
+function render(){
+  const app = document.getElementById('app');
+  const hash = location.hash || '#/';
+  if(hash.startsWith('#/detail/')){
+    renderDetail(app, hash.split('/')[2]);
+  } else if(hash === '#/library'){
+    renderLibrary(app);
+  } else {
+    renderRecord(app);
+  }
+}
+window.addEventListener('hashchange', render);
+window.addEventListener('DOMContentLoaded', render);
+</script>
+</body>
+</html>
